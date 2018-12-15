@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Homework_03 - PentaStagiu React</title>
+    <style>
+      html {
+        height: 100%;
+        font-size: 62.5%;
+        box-sizing: border-box;
+      }
+
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      ul {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        list-style: none;
+        padding: 0;
+      }
+
+      li {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      img {
+        max-width: 125px;
+        height: auto;
+        border-radius: 0.5em;
+        margin-right: 2em;
+      }
+
+      a {
+        font-size: 2rem;
+        font-family: "Source Sans Pro", sans-serif;
+        color: purple;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script
+      crossorigin
+      src="https://unpkg.com/react@16/umd/react.production.min.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"
+    ></script>
+    <script src="https://unpkg.com/babel-standalone@6.26.0/babel.min.js"></script>
+    <script type="text/babel">
+      const spreadsheetId = "1KiSpBdLsx4BUF9yLatkC0Bf5ggfxa0MuAgzy7k8KCo4";
+      const startCell = "A3";
+      const endCell = "D60";
+      const apiKey = "AIzaSyCmwz0_xvOwpTGHPA4mqNTnXPxt0WEdSH4";
+
+      class App extends React.Component {
+        state = {
+          peers: undefined
+        };
+
+        async componentDidMount() {
+          try {
+            const response = await fetch(
+              `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${startCell}:${endCell}?key=${apiKey}`
+            );
+            const { values } = await response.json();
+
+            if (values.length) {
+              const finalPeersObject = {};
+
+              // http://2ality.com/2016/10/async-function-tips.html
+              await Promise.all(
+                values.map(async cellArray => {
+                  if (cellArray[2]) {
+                    const fetchPeerInfo = await fetch(
+                      `https://api.github.com/users/${
+                        cellArray[2].split("/")[0]
+                      }`
+                    );
+
+                    const { avatar_url } = await fetchPeerInfo.json();
+
+                    finalPeersObject[`${cellArray[0] || ""}`] = {
+                      avatar: avatar_url || "",
+                      githubUser: cellArray[2].split("/")[0],
+                      assignmentRepo: `https://github.com/${cellArray[2]}`
+                    };
+                  } else {
+                    finalPeersObject[`${cellArray[0] || ""}`] = {
+                      avatar: "",
+                      githubUser: "",
+                      assignmentRepo: ""
+                    };
+                  }
+                })
+              );
+
+              this.setState({ peers: finalPeersObject });
+            }
+          } catch (err) {
+            console.error(err);
+          }
+        }
+
+        render() {
+          const {
+            state: { peers }
+          } = this;
+
+          return (
+            <div>
+              <ul>
+                {peers &&
+                  Object.keys(peers).map(user => (
+                    <li key={user}>
+                      <img src={peers[user].avatar} alt={user} />
+                      <a href={peers[user].assignmentRepo}>
+                        {peers[user].githubUser}
+                      </a>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          );
+        }
+      }
+
+      ReactDOM.render(<App />, document.getElementById("root"));
+    </script>
+  </body>
+</html>
